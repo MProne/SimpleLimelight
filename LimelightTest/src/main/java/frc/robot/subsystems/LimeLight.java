@@ -10,6 +10,8 @@ import org.photonvision.PhotonCamera;
 import org.photonvision.PhotonUtils;
 import org.photonvision.targeting.PhotonTrackedTarget;
 
+import edu.wpi.first.math.geometry.Transform3d;
+import edu.wpi.first.math.trajectory.Trajectory;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
@@ -17,7 +19,8 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 public class LimeLight extends SubsystemBase {
   /** Creates a new LimeLight. */
   private final PhotonCamera robotcamera = new PhotonCamera( "7688Camera") ;
-  private final double CAMERA_HEIGHT = 0.026865; //height of middle of camera lens from the ground 
+  
+  private final double CAMERA_HEIGHT = 0.026865; //height of middle of camera lens from the ground (meters)
   private final double CAMERA_PITCH = 0; //pitch angle of the camera from the horizontal plane
   private double targetHeight = 0; //height of target from ground in meters
 
@@ -27,6 +30,7 @@ public class LimeLight extends SubsystemBase {
     SmartDashboard.putNumber("target Yaw", -1);
     SmartDashboard.putNumber("target Pitch", -1);
     SmartDashboard.putNumber("estimated distance", -1);
+    
   }
 
   public boolean CameraHasTargets() {
@@ -80,11 +84,22 @@ public class LimeLight extends SubsystemBase {
 
   @Override
   public void periodic() {
-    SmartDashboard.putBoolean("Target detected?", false);
-    SmartDashboard.putNumber("target ID", getTargetId());
-    SmartDashboard.putNumber("target Yaw", getTargetYaw());
-    SmartDashboard.putNumber("target Pitch", getTargetPitch());
-    SmartDashboard.putNumber("estimated distance", getEstimatedDistance(targetHeight));
+    var res = robotcamera.getLatestResult();
+    PhotonTrackedTarget target = res.getBestTarget();
+    Transform3d targetData = target.getBestCameraToTarget();
+    if(res.hasTargets())
+    {
+      SmartDashboard.putBoolean("Target detected?", false);
+      SmartDashboard.putNumber("target ID", getTargetId());
+      SmartDashboard.putNumber("estX", Units.metersToInches(targetData.getX()));
+      SmartDashboard.putBoolean("Move back", Units.metersToInches(targetData.getX()) + 1 < 40);
+      SmartDashboard.putBoolean("Move forward", Units.metersToInches(targetData.getX()) - 1 > 40);
+
+      SmartDashboard.putNumber("target Yaw", getTargetYaw());
+      SmartDashboard.putNumber("target Pitch", getTargetPitch());
+      SmartDashboard.putNumber("estimated distance", getEstimatedDistance(targetHeight));
+    }
+    
     // This method will be called once per scheduler run
   }
 }
